@@ -13,7 +13,7 @@
     "lint": "eslint packages/**/src/ --ext .ts,.tsx,.js,.jsx --config .eslintrc --max-warnings=0",
     "format": "prettier --write '**/*.{js,jsx,ts,tsx,md,mdx,css,scss,json}'",
     "test": "lerna run test",
-    "release": "yarn lerna run build && lerna publish from-package",
+    "release": "yarn lerna run build && lerna publish from-package --yes",
     "versionup": "lerna version --conventional-commits",
     "versionup:patch": "lerna version patch --conventional-commits",
     "versionup:minor": "lerna version minor --conventional-commits",
