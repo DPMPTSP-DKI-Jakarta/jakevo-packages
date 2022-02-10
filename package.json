@@ -1,0 +1,48 @@
+{
+  "name": "jakevo",
+  "main": "index.js",
+  "author": "jakevo",
+  "license": "MIT",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "lerna": "lerna",
+    "build": "lerna run build",
+    "lint": "eslint packages/**/src/ --ext .ts,.tsx,.js,.jsx --config .eslintrc --max-warnings=0",
+    "format": "prettier --write '**/*.{js,jsx,ts,tsx,md,mdx,css,scss,json}'",
+    "test": "lerna run test",
+    "release": "yarn lerna run build && lerna publish from-package",
+    "versionup": "lerna version --conventional-commits",
+    "versionup:patch": "lerna version patch --conventional-commits",
+    "versionup:minor": "lerna version minor --conventional-commits",
+    "versionup:major": "lerna version major --conventional-commits"
+  },
+  "devDependencies": {
+    "@types/node": "^17.0.14",
+    "eslint": "^7.15.0",
+    "husky": "^4.3.7",
+    "lerna": "^4.0.0",
+    "lint-staged": "^10.5.3",
+    "prettier": "^2.4.1",
+    "typescript": "4.1.3"
+  },
+  "dependencies": {
+    "@jakevo/eslint-config": "^0.0.0",
+    "@jakevo/prettier-config": "^0.0.0",
+    "@jakevo/utils": "^0.0.0"
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "lint-staged"
+    }
+  },
+  "lint-staged": {
+    "packages/*.{js,jsx,ts,tsx,json}": [
+      "yarn format",
+      "git add -A",
+      "yarn lint --fix"
+    ]
+  }
+}
