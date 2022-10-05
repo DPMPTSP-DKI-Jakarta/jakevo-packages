@@ -1,54 +1,42 @@
-import axios, {
-  AxiosError,
+import {
   AxiosInstance,
-  AxiosRequestConfig,
-  AxiosResponse,
 } from 'axios'
 import { JakevoClientOptions } from './client'
-import { APIResponse, ParamsType } from './types'
+import { JakevoApiClientHelper } from './client-helper'
+import { ParamsType } from './types'
+import { JakevoApiResponse } from './types/base'
 
-export class ApiBuilder {
+export class JakevoApiBuilder extends JakevoApiClientHelper {
   private url: string
-
-  service: AxiosInstance
-
-  private _params: string
-
+  private httpClient: AxiosInstance
+  private queryParams: string
   private options: JakevoClientOptions
 
-  constructor(url: string, options: JakevoClientOptions) {
-    const service = axios.create()
-    service.interceptors.response.use(this.handleSuccess, this.handleError)
-    this.service = service
-    this.url = url
-    this._params = ''
+  constructor(axiosInstance: AxiosInstance, options: JakevoClientOptions) {
+    super()
+    this.httpClient = axiosInstance
+    this.url = options.url
+    this.queryParams = ''
     this.options = options
   }
 
-  handleSuccess(response: AxiosResponse<any>): AxiosResponse<any> {
-    return response.data
-  }
-
-  handleError(error: AxiosError<any>): Promise<AxiosError<any>> {
-    return Promise.reject(error)
-  }
-
-  private getOptions(name: keyof JakevoClientOptions): any {
-    return this.options[name]
-  }
-
-  private async _getHeaders(): Promise<AxiosRequestConfig['headers']> {
-    const session: any = await this.getOptions('sessionProvider')()
-
-    const headers: AxiosRequestConfig['headers'] = {
-      'Content-Type': 'application/json',
-      Accept: 'application/json',
+  public params(params?: ParamsType): this {
+    if (!params) {
+      return this
     }
+    const queryParams = Object.keys(params)
+      .map(
+        (key) =>
+          `${encodeURIComponent(key)}=${encodeURIComponent(
+            (params as any)[key]
+          )}`
+      )
+      .join('&')
 
-    headers.Authorization = `${session?.accessToken?.token_type} ${session?.accessToken?.access_token}`
-
-    return headers
+    this.queryParams = queryParams
+    return this
   }
+
 
   private getUrl(id?: string): string {
     let { url } = this
@@ -63,81 +51,72 @@ export class ApiBuilder {
     if (id) {
       url = `${url}/${id}`
     }
-    if (this._params) {
-      url = `${url}?${this._params}`
+    if (this.queryParams) {
+      url = `${url}?${this.queryParams}`
     }
     return url
   }
 
-  params(params?: ParamsType): this {
-    if (!params) {
-      return this
-    }
-    const queryParams = Object.keys(params)
-      .map(
-        (key) =>
-          `${encodeURIComponent(key)}=${encodeURIComponent(
-            (params as any)[key]
-          )}`
-      )
-      .join('&')
-
-    this._params = queryParams
-    return this
-  }
-
-  async getAll(): Promise<APIResponse> {
-    const headers = await this._getHeaders()
-    const url = this.getUrlWithParams()
-    return await this.service.get(url, {
-      responseType: 'json',
-      headers,
+  async getAll<T>(): Promise<JakevoApiResponse<T>> {
+    return new Promise<JakevoApiResponse<T>>(async (resolve) => {
+      try {
+        const url = this.getUrlWithParams()
+        const res = await this.httpClient.get(url)
+        resolve(this._resolveSuccess(res))
+      } catch (err) {
+        resolve(this._resolveError(err))
+      }
     })
   }
 
-  async find(id: string): Promise<APIResponse> {
-    const headers = await this._getHeaders()
-    const url = this.getUrlWithParams(id)
-    return await this.service.get(url, {
-      responseType: 'json',
-      headers,
+  async find<T>(id: number | string): Promise<JakevoApiResponse<T>> {
+    return new Promise<JakevoApiResponse<T>>(async (resolve) => {
+      try {
+        const url = this.getUrlWithParams(id as string)
+        const res = await this.httpClient.get(url)
+        resolve(this._resolveSuccess(res))
+      } catch (err) {
+        resolve(this._resolveError(err))
+      }
     })
   }
 
-  async delete(ids: Array<string>): Promise<APIResponse> {
-    const headers = await this._getHeaders()
-    const url = this.getUrl()
-    return await this.service.delete(url, {
-      responseType: 'json',
-      data: JSON.stringify({ ids }),
-      headers,
+  async delete<T>(ids: Array<string>): Promise<JakevoApiResponse<T>> {
+    return new Promise<JakevoApiResponse<T>>(async (resolve) => {
+      try {
+        const url = this.getUrl()
+        const res = await this.httpClient.delete(url, {
+          data: JSON.stringify({ ids }),
+          ...this.options.axiosOptions
+        })
+        resolve(this._resolveSuccess(res))
+      } catch (err) {
+        resolve(this._resolveError(err))
+      }
     })
   }
 
-  async duplicate(id: string): Promise<APIResponse> {
-    const headers = await this._getHeaders()
-    const url = this.getUrlWithParams(id)
-    return await this.service.post(url, null, {
-      responseType: 'json',
-      headers,
+  async create<T>(body: T): Promise<JakevoApiResponse<T>> {
+    return new Promise<JakevoApiResponse<T>>(async (resolve) => {
+      try {
+        const url = this.getUrl()
+        const res = await this.httpClient.post(url, JSON.stringify(body))
+        resolve(this._resolveSuccess(res))
+      } catch (err) {
+        resolve(this._resolveError(err))
+      }
     })
   }
 
-  async create<T>(body: T): Promise<APIResponse> {
-    const headers = await this._getHeaders()
-    const url = this.getUrl()
-    return await this.service.post(url, JSON.stringify(body), {
-      responseType: 'json',
-      headers,
-    })
-  }
-
-  async update<T>(id: string, body: T): Promise<APIResponse> {
-    const headers = await this._getHeaders()
-    const url = this.getUrl(id)
-    return await this.service.put(url, JSON.stringify(body), {
-      responseType: 'json',
-      headers,
+  async update<T>(id: string, body: T): Promise<JakevoApiResponse<T>> {
+    return new Promise<JakevoApiResponse<T>>(async (resolve) => {
+      try {
+        const url = this.getUrl(id)
+        const res = await this.httpClient.put(url, JSON.stringify(body))
+        resolve(this._resolveSuccess(res))
+      } catch (err) {
+        resolve(this._resolveError(err))
+      }
     })
   }
 }

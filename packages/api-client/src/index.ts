@@ -2,7 +2,11 @@ import { JakevoClientOptions, JakevoClient } from './client'
 
 export * from './types'
 
-export const createClient = (
-  jakevoApiUrl: string,
+const createClient = (
   options: JakevoClientOptions
-): JakevoClient => new JakevoClient(jakevoApiUrl, options)
+): JakevoClient => new JakevoClient(options)
+
+export {
+  createClient,
+  JakevoClientOptions
+}
